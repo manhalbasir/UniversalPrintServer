@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>UniversalPrintServer</AssemblyName>
+    <RootNamespace>UniversalPrintServer</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>AnyCPU</Platforms>
+    <!-- أيقونة الملف التنفيذي (.exe) وشريط المهام، مبنية من شعار UniversalPrinter -->
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
+    <PackageReference Include="System.Management" Version="7.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- تُضمَّن هذه الملفات داخل الملف التنفيذي ويمكن الوصول إليها من XAML عبر مسار نسبي مثل "Assets/logo.png" -->
+    <Resource Include="Assets\icon.ico" />
+    <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\banner.png" />
+  </ItemGroup>
+
+</Project>

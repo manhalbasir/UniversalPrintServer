@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "ymjEBrz++sg=",
+  "success": true,
+  "projectFilePath": "E:\\New folder\\my printer android service\\UniversalPrintServer\\UniversalPrintServer\\UniversalPrintServer\\UniversalPrintServer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\dev\\.nuget\\packages\\microsoft.win32.systemevents\\9.0.10\\microsoft.win32.systemevents.9.0.10.nupkg.sha512",
+    "C:\\Users\\dev\\.nuget\\packages\\system.codedom\\7.0.0\\system.codedom.7.0.0.nupkg.sha512",
+    "C:\\Users\\dev\\.nuget\\packages\\system.drawing.common\\9.0.10\\system.drawing.common.9.0.10.nupkg.sha512",
+    "C:\\Users\\dev\\.nuget\\packages\\system.management\\7.0.2\\system.management.7.0.2.nupkg.sha512"
+  ],
+  "logs": []
+}
