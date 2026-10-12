@@ -1,0 +1,99 @@
+name: Build and publish to store
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:     { default: "1.0.0" }
+      store_repo:  { default: "manhal-repo/universalprint" }
+      app_id:      { default: "com.devbelmel.universalprinter" }
+      app_name:    { default: "Universal Printer" }
+      summary:     { default: "طباعة من أندرويد إلى أي طابعة عبر حاسوب ويندوز" }
+      description: { default: "برنامج ويندوز يحوّل حاسوبك إلى خادم طباعة (IPP وLPD وRAW وFTP) لتطبيق Universal Printer على أندرويد. يتضمن بيئة .NET 9 فلا يحتاج تثبيتها." }
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      STORE_REPO: ${{ inputs.store_repo || 'manhal-repo/universalprint' }}
+      APP_ID: ${{ inputs.app_id || 'com.devbelmel.universalprinter' }}
+      APP_NAME: ${{ inputs.app_name || 'Universal Printer' }}
+      SUMMARY: ${{ inputs.summary || 'طباعة من أندرويد إلى أي طابعة عبر حاسوب ويندوز' }}
+      DESCRIPTION: ${{ inputs.description || 'برنامج ويندوز يحوّل حاسوبك إلى خادم طباعة لتطبيق Universal Printer على أندرويد. يتضمن بيئة .NET 9.' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Resolve version
+        run: |
+          V="${{ inputs.version }}"
+          if [ -z "$V" ]; then V="${GITHUB_REF_NAME#v}"; fi
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+          echo "Version: $V"
+
+      - name: Check required files
+        run: |
+          for f in UniversalPrintServer.csproj app.manifest \
+                   Assets/icon.ico Assets/logo.png Assets/banner.png; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          test -n "${{ secrets.STORE_TOKEN }}" || { echo "MISSING secret: STORE_TOKEN"; exit 1; }
+
+      - name: Publish (self-contained, .NET 9 included)
+        run: |
+          dotnet publish UniversalPrintServer.csproj \
+            -c Release -r win-x64 --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:Version="$VERSION" \
+            -o publish
+          mkdir -p dist
+          cp publish/UniversalPrintServer.exe "dist/UniversalPrintServer-$VERSION-win-x64.exe"
+          ls -lh dist
+
+      - name: Release in this repo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$VERSION" dist/* \
+            --title "Windows $VERSION" \
+            --notes "UniversalPrintServer $VERSION (x64, .NET 9 included)" \
+            || gh release upload "v$VERSION" dist/* --clobber
+
+      - name: Upload to store release files
+        env:
+          GH_TOKEN: ${{ secrets.STORE_TOKEN }}
+        run: |
+          gh release view files --repo "$STORE_REPO" >/dev/null 2>&1 || \
+            gh release create files --repo "$STORE_REPO" --title Files --notes files
+          gh release upload files dist/* --clobber --repo "$STORE_REPO"
+
+      - name: Update store catalog
+        env:
+          STORE_TOKEN: ${{ secrets.STORE_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${STORE_TOKEN}@github.com/${STORE_REPO}.git" store
+          python tools/update_store_catalog.py
+
+      - name: Commit and deploy store
+        env:
+          GH_TOKEN: ${{ secrets.STORE_TOKEN }}
+        run: |
+          cd store
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/catalog/apps.json
+          git commit -m "Add Windows build $VERSION" || echo "no changes"
+          git push
+          gh workflow run deploy.yml --repo "$STORE_REPO"
